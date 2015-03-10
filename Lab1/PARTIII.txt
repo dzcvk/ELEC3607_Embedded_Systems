@@ -1,0 +1,22 @@
+
+void setup() {
+
+  REG_PIOC_PER=1<<13;
+  REG_PIOC_OER=1<<13;
+  REG_PIOC_MDDR=1<<13;
+  
+  REG_PIOC_PER=1<<12;
+  REG_PIOC_OER=1<<12;
+  REG_PIOC_MDDR=1<<12;
+  
+
+}
+
+
+void loop() {
+
+  REG_PIOC_ODSR = (1<<13); 
+  delay(1);               // wait for a second
+  REG_PIOC_ODSR = (1<<12); 
+  delay(1);               // wait for a second
+}
