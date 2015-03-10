@@ -10,68 +10,22 @@ char *mcodetbl[] =
  "-.--", "--.."
 };
 
-void CharToMorsecode(char c, char* Morsecode)
+char* CharToMorsecode(char c)
 {
-  
-  
-  switch(c)
+  unsigned int Num=(unsigned int)c;
+  char* Morsecode;
+  if(Num>=65&&Num<=90)
   {
-    case 'A': Morsecode=mcodetbl[0];
-    break;
-    case 'B': Morsecode=mcodetbl[1];
-    break;
-    case 'C': Morsecode=mcodetbl[2];
-    break;
-    case 'D': Morsecode=mcodetbl[3];
-    break;
-    case 'E': Morsecode=mcodetbl[4];
-    break;
-    case 'F': Morsecode=mcodetbl[5];
-    break;
-    case 'G': Morsecode=mcodetbl[6];
-    break;
-    case 'H': Morsecode=mcodetbl[7];
-    break;
-    case 'I': Morsecode=mcodetbl[8];
-    break;
-    case 'J': Morsecode=mcodetbl[9];
-    break;
-    case 'K': Morsecode=mcodetbl[10];
-    break;
-    case 'L': Morsecode=mcodetbl[11];
-    break;
-    case 'M': Morsecode=mcodetbl[12];
-    break;
-    case 'N': Morsecode=mcodetbl[13];
-    break;
-    case 'O': Morsecode=mcodetbl[14];
-    break;
-    case 'P': Morsecode=mcodetbl[15];
-    break;
-    case 'Q': Morsecode=mcodetbl[16];
-    break;
-    case 'R': Morsecode=mcodetbl[17];
-    break;
-    case 'S': Morsecode=mcodetbl[18];
-    break;
-    case 'T': Morsecode=mcodetbl[19];
-    break;
-    case 'U': Morsecode=mcodetbl[20];
-    break;
-    case 'V': Morsecode=mcodetbl[21];
-    break;
-    case 'W': Morsecode=mcodetbl[22];
-    break;
-    case 'X': Morsecode=mcodetbl[23];
-    break;
-    case 'Y': Morsecode=mcodetbl[24];
-    break;
-    case 'Z': Morsecode=mcodetbl[25];
-    break;
-    default: Morsecode=0;
+    Num=Num-65;
+    Morsecode=mcodetbl[Num];
   }
+  else
+  {
+    Morsecode=NULL;
+  }
+  
+  return Morsecode;
 }
-
 
 void MorsecodeToBlink(char* Morsecode)
 {
@@ -97,7 +51,7 @@ void mencode(char* s)
   char* Morsecode;
   while(*s!=NULL)
   {
-    CharToMorsecode(s, Morsecode);
+    Morsecode=CharToMorsecode(*s);
     MorsecodeToBlink(Morsecode);
     s++;
   }
@@ -111,9 +65,5 @@ void setup() {
 
 
 void loop() {
-  REG_PIOC_ODSR = (1<<13); 
-  delay(1);               // wait for a second
-  REG_PIOC_ODSR = (1<<12); 
-  delay(1);               // wait for a second
+mencode("HELLO");
 }
-
