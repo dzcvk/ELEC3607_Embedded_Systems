@@ -1,0 +1,69 @@
+#include "stdafx.h"
+#include <iostream>
+using namespace std;
+
+char *mcodetbl[] =
+{
+	".-", "-...", "-.-.", "-..",
+	".", "..-.", "--.", "....",
+	"..", ".---", ".-.-", ".-..",
+	"--", "-.", "---", ".--.",
+	"--.-", ".-.", "...", "-",
+	"..-", "...-", ".--", "-..-",
+	"-.--", "--.."
+};
+
+char* CharToMorsecode(char c)
+{
+	unsigned int Num = (unsigned int)c;
+	char* Morsecode;
+	if (Num >= 65 && Num <= 90)
+	{
+		Num = Num - 65;
+		Morsecode = mcodetbl[Num];
+	}
+	else
+	{
+		Morsecode = NULL;
+	}
+
+	return Morsecode;
+}
+
+void MorsecodeToBlink(char* Morsecode)
+{
+	while (*Morsecode != NULL)
+	{
+		if (*Morsecode == '.')
+		{
+			cout << "x" ;
+		}
+		else if (*Morsecode == '-')
+		{
+			cout << "o" ;
+		}
+		Morsecode++;
+	}
+}
+
+
+void mencode(char* s)
+{
+	char* Morsecode;
+	while (*s != NULL)
+	{
+		Morsecode = CharToMorsecode(*s);
+		MorsecodeToBlink(Morsecode);
+		s++;
+	}
+}
+
+
+int _tmain(int argc, _TCHAR* argv[])
+{
+	mencode("HELLO");
+	cout << endl;
+	system("pause");
+	return 0;
+}
+
