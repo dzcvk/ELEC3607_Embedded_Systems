@@ -1,0 +1,302 @@
+Part I
+
+Write an Arduino DUE program which tests the local loopback mode of USART 1 at a baud rate of 38400. Your program should write the string "HELLO" to USART 1 and read it back. (Hint: you can use Arduino's serial library, but you will need register manipulation to enable loopback mode. Also beware that Serial1 is not used for USART 1.)
+
+
+void setup()
+{
+  Serial.begin(38400);
+  Serial2.begin(38400);
+  REG_USART1_MR |= 2<<14;
+}
+void loop()
+{
+  char data[10];
+  int i=0;
+
+  Serial2.print("HELLO\n");
+  Serial2.flush();
+  Serial2.readBytesUntil('\n',data,10);
+  Serial.print(data);
+  while(1);
+}
+Part II
+
+
+void setup()
+{
+  Serial.begin(9600);
+}
+void loop()
+{
+  Serial.write(0x1A);
+  delay(10);
+}
+Part III
+
+
+#define blueToothSerial Serial2
+
+
+void setup()
+{
+    Serial.begin(9600);
+    setupBlueToothConnection();
+
+}
+
+void loop()
+{
+    char recvChar;
+    while(1)
+    {
+        if(blueToothSerial.available())
+        {//check if there's any data sent from the remote bluetooth shield
+            //recvChar = blueToothSerial.read();
+            //Serial.print(recvChar);
+        }
+    }
+}
+
+void setupBlueToothConnection()
+{
+    blueToothSerial.begin(38400);                           // Set BluetoothBee BaudRate to default baud rate 38400
+    blueToothSerial.print("\r\n+STWMOD=0\r\n");             // set the bluetooth work in slave mode
+    blueToothSerial.print("\r\n+STNA=My Name is V\r\n");    // set the bluetooth name as "My Name is V"
+    blueToothSerial.print("\r\n+STOAUT=1\r\n");             // Permit Paired device to connect me
+    blueToothSerial.print("\r\n+STAUTO=0\r\n");             // Auto-connection should be forbidden here
+    delay(2000);                                            // This delay is required.
+    blueToothSerial.print("\r\n+INQ=1\r\n");                // make the slave bluetooth inquirable
+    Serial.println("The slave bluetooth is inquirable!");
+    delay(2000);                                            // This delay is required.
+    blueToothSerial.flush();
+}
+Part VI
+
+
+#define blueToothSerial Serial2
+
+
+void setup()
+{
+    Serial.begin(9600);
+    setupBlueToothConnection();
+
+}
+
+void loop()
+{
+    char recvChar;
+    while(1)
+    {
+        if(blueToothSerial.available())
+        {
+            recvChar = blueToothSerial.read();
+            if(recvChar == 'h')
+              {//switch on the LED}
+            else if(recvChar == 'l')
+              {//switch off the LED}
+        }
+    }
+}
+
+void setupBlueToothConnection()
+{
+    blueToothSerial.begin(38400);                           // Set BluetoothBee BaudRate to default baud rate 38400
+    blueToothSerial.print("\r\n+STWMOD=0\r\n");             // set the bluetooth work in slave mode
+    blueToothSerial.print("\r\n+STNA=My Name is V\r\n");    // set the bluetooth name as "My Name is V"
+    blueToothSerial.print("\r\n+STOAUT=1\r\n");             // Permit Paired device to connect me
+    blueToothSerial.print("\r\n+STAUTO=0\r\n");             // Auto-connection should be forbidden here
+    delay(2000);                                            // This delay is required.
+    blueToothSerial.print("\r\n+INQ=1\r\n");                // make the slave bluetooth inquirable
+    Serial.println("The slave bluetooth is inquirable!");
+    delay(2000);                                            // This delay is required.
+    blueToothSerial.flush();
+}
+Part V
+
+Slave:
+
+
+#define blueToothSerial Serial2
+
+
+void setup()
+{
+    setupBlueToothConnection();
+    Serial.begin(9600);
+}
+
+void loop()
+{
+    int recvInt;
+    while(1)
+    {
+        if(blueToothSerial.available())
+        {
+            recvInt = blueToothSerial.parseInt();
+            recvInt++;
+            blueToothSerial.write(recvInt);
+        }
+    }
+}
+
+void setupBlueToothConnection()
+{
+    blueToothSerial.begin(38400);                           // Set BluetoothBee BaudRate to default baud rate 38400
+    blueToothSerial.print("\r\n+STWMOD=0\r\n");             // set the bluetooth work in slave mode
+    blueToothSerial.print("\r\n+STNA=MyNameIsV\r\n");    // set the bluetooth name as "My Name is V"
+    blueToothSerial.print("\r\n+STOAUT=1\r\n");             // Permit Paired device to connect me
+    blueToothSerial.print("\r\n+STAUTO=0\r\n");             // Auto-connection should be forbidden here
+    blueToothSerial.print("\r\n+STPIN =0000\r\n"); 
+    delay(2000);                                            // This delay is required.
+    blueToothSerial.print("\r\n+INQ=1\r\n");                // make the slave bluetooth inquirable
+    Serial.println("The slave bluetooth is inquirable!");
+    delay(2000);                                            // This delay is required.
+    blueToothSerial.flush();
+}
+Master:
+
+
+#define blueToothSerial Serial2
+
+String retSymb = "+RTINQ=";                     // start symble when there's any return
+String slaveName = ";My name is V";             // caution that ';'must be included, and make sure the slave name is right.
+int nameIndex = 0;
+int addrIndex = 0;
+
+String recvBuf;
+String slaveAddr;
+
+String connectCmd = "\r\n+CONN=";
+
+void setup()
+{
+    Serial.begin(9600);
+    setupBlueToothConnection();
+    //wait 1s and flush the serial buffer
+    delay(1000);
+    blueToothSerial.flush();
+}
+
+void loop()
+{
+    char recvInt;
+    while(1)
+    {
+        if(blueToothSerial.available())         //check if there's any data sent from the remote bluetooth shield
+        {
+            recvInt = blueToothSerial.parseInt();
+            recvInt++;
+            blueToothSerial.write(recvInt);
+        }
+    }
+}
+
+void setupBlueToothConnection()
+{
+    blueToothSerial.begin(38400);                               // Set BluetoothBee BaudRate to default baud rate 38400
+    blueToothSerial.print("\r\n+STWMOD=1\r\n");                 // set the bluetooth work in master mode
+    blueToothSerial.print("\r\n+STNA=My name is W\r\n");       // set the bluetooth name as "SeeedBTMaster"
+    blueToothSerial.print("\r\n+STAUTO=0\r\n");                 // Auto-connection is forbidden here
+    delay(2000);                                                // This delay is required.
+    blueToothSerial.flush();
+    blueToothSerial.print("\r\n+INQ=1\r\n");                    //make the master inquire
+
+    delay(2000); // This delay is required.
+
+    //find the target slave
+    char recvChar;
+    while(1)
+    {
+        if(blueToothSerial.available())
+        {
+            recvChar = blueToothSerial.read();
+            recvBuf += recvChar;
+            nameIndex = recvBuf.indexOf(slaveName);             //get the position of slave name
+            
+                                                                //nameIndex -= 1;
+                                                                //decrease the ';' in front of the slave name, to get the position of the end of the slave address
+            if ( nameIndex != -1 )
+            {
+                //Serial.print(recvBuf);
+                addrIndex = (recvBuf.indexOf(retSymb,(nameIndex - retSymb.length()- 18) ) + retSymb.length());//get the start position of slave address
+                slaveAddr = recvBuf.substring(addrIndex, nameIndex);//get the string of slave address
+                break;
+            }
+        }
+    }
+    
+    //form the full connection command
+    connectCmd += slaveAddr;
+    connectCmd += "\r\n";
+    int connectOK = 0;
+    //connecting the slave till they are connected
+    do
+    {
+        blueToothSerial.print(connectCmd);//send connection command
+        recvBuf = "";
+        while(1)
+        {
+            if(blueToothSerial.available()){
+                recvChar = blueToothSerial.read();
+                recvBuf += recvChar;
+                if(recvBuf.indexOf("CONNECT:OK") != -1)
+                {
+                    connectOK = 1;
+                    break;
+                }
+                else if(recvBuf.indexOf("CONNECT:FAIL") != -1)
+                {
+                    break;
+                }
+            }
+        }
+    }while(0 == connectOK);
+}
+We used this to communicate with other team.
+
+#define blueToothSerial Serial2
+
+
+void setup()
+{
+    Serial.begin(9600);
+    setupBlueToothConnection();
+
+}
+
+void loop() 
+{ 
+     char recvChar; 
+     while(1) 
+     {   
+         if(blueToothSerial.available()) 
+         {//check if there's any data sent from the remote bluetooth shield 
+             recvChar = blueToothSerial.read(); 
+             Serial.print(recvChar); 
+         } 
+         if(Serial.available()) 
+         {//check if there's any data sent from the local serial terminal, you can add the other applications here 
+             recvChar  = Serial.read(); 
+             blueToothSerial.print(recvChar); 
+         } 
+     } 
+} 
+
+
+void setupBlueToothConnection()
+{
+    blueToothSerial.begin(38400);                           // Set BluetoothBee BaudRate to default baud rate 38400
+
+    blueToothSerial.print("\r\n+STWMOD=0\r\n");             // set the bluetooth work in slave mode
+    blueToothSerial.print("\r\n+STNA=MyNameIsV\r\n");    // set the bluetooth name as "My Name is V"
+    blueToothSerial.print("\r\n+STPIN =0000\r\n"); 
+    blueToothSerial.print("\r\n+STOAUT=1\r\n");             // Permit Paired device to connect me
+    blueToothSerial.print("\r\n+STAUTO=0\r\n");             // Auto-connection should be forbidden here
+    delay(2000);                                            // This delay is required.
+    blueToothSerial.print("\r\n+INQ=1\r\n");                // make the slave bluetooth inquirable
+    Serial.println("The slave bluetooth is inquirable!");
+    delay(2000);                                            // This delay is required.
+    blueToothSerial.flush();
+}

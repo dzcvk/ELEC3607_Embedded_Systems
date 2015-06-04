@@ -1,0 +1,168 @@
+Part I
+
+
+#define  XTC    TC1       // TC number
+#define  XCHAN  1         // change the channel number to channel 1
+#define  XID    ID_TC4    // Instance ID
+
+void setup()
+{
+  Serial.begin(9600);
+  pmc_set_writeprotect(false);
+  pmc_enable_periph_clk(XID);
+  //TC_Configure(XTC, XCHAN, TC_CMR_WAVE | TC_CMR_WAVSEL_UP_RC | TC_CMR_TCCLKS_TIMER_CLOCK4);
+  TC_Configure(XTC, XCHAN, TC_CMR_WAVE | TC_CMR_WAVSEL_UP_RC | TC_CMR_TCCLKS_TIMER_CLOCK2);
+  TC_Start(XTC, XCHAN);
+}
+void loop()
+{
+  TC_Start(XTC, XCHAN);
+  //TC1_CCR1 |= 1<<2;  //activate software trigger to reset counter
+  delay(1000);
+  Serial.println(TC_ReadCV(XTC, XCHAN), DEC);
+}
+Part II
+
+
+  Serial.println(analogValue);       // print as an ASCII-encoded decimal
+  Serial.println(analogValue, DEC);  // print as an ASCII-encoded decimal
+  Serial.println(analogValue, HEX);  // print as an ASCII-encoded hexadecimal
+  Serial.println(analogValue, OCT);  // print as an ASCII-encoded octal
+  Serial.println(analogValue, BIN);  // print as an ASCII-encoded binary
+C:\Program Files (x86)\Arduino\hardware\arduino\sam\variants\arduino_due_x\variant.h
+
+
+/** Frequency of the board main oscillator */
+#define VARIANT_MAINOSC         12000000
+
+/** Master clock frequency */
+#define VARIANT_MCK                     84000000
+
+#define  XTC    TC1       // TC number
+#define  XCHAN  1         // change the channel number to channel 1
+#define  XID    ID_TC4    // Instance ID
+
+void sprint(char *s) 
+{
+  Serial.print(s);
+}
+
+void fprint(double f) 
+{
+  Serial.println(f);
+}
+
+void setup()
+{
+  Serial.begin(9600);
+  pmc_set_writeprotect(false);
+  pmc_enable_periph_clk(XID);
+  TC_Configure(XTC, XCHAN, TC_CMR_WAVE | TC_CMR_WAVSEL_UP_RC | TC_CMR_TCCLKS_TIMER_CLOCK4);  
+  //CLOCK4 = MCK/128, CLOCK2 = MCK/8
+  TC_Start(XTC, XCHAN);
+}
+void loop()
+{
+  double time=0;
+  TC_Start(XTC, XCHAN);
+  //TC1_CCR1 |= 1<<2;  //activate software trigger to reset counter
+  sprint("HELLO\n");
+  time = double(TC_ReadCV(XTC, XCHAN))/VARIANT_MCK*128*1000;
+  Serial.println(time, DEC);
+  TC_Start(XTC, XCHAN);
+  //TC1_CCR1 |= 1<<2;  //activate software trigger to reset counter
+  fprint(1.2);
+  time = double(TC_ReadCV(XTC, XCHAN))/VARIANT_MCK*128*1000;
+  Serial.println(time, DEC);
+  while(1);
+}
+Part III
+
+
+#define  XTC    TC0       // TC number
+#define  XCHAN  0         // TC channel
+#define  XID    ID_TC0    // Instance ID
+#define  PIN    2
+#define  PINCHAN  25      // Digital pin 2 which is on PIOB channel 25
+
+void pwmwave(unsigned int duty, unsigned int freq) 
+{
+  unsigned int  tcclk = VARIANT_MCK / freq / 2;
+  TC_Configure(XTC, XCHAN, TC_CMR_WAVE | TC_CMR_WAVSEL_UP_RC | TC_CMR_TCCLKS_TIMER_CLOCK1 |TC_CMR_ACPC_CLEAR| TC_CMR_ACPA_SET);
+  TC_SetRC(XTC, XCHAN,tcclk);
+  TC_SetRA(XTC, XCHAN,tcclk/100*(100-duty));
+  TC_Start(XTC, XCHAN);
+}
+
+void squarewave(unsigned int freq) 
+{
+  unsigned int  tcclk = VARIANT_MCK / freq / 4;
+
+  TC_Configure(XTC, XCHAN, TC_CMR_WAVE | TC_CMR_WAVSEL_UP_RC | TC_CMR_TCCLKS_TIMER_CLOCK1 |TC_CMR_ACPC_TOGGLE);
+  TC_SetRC(XTC, XCHAN, tcclk);
+  TC_Start(XTC, XCHAN);
+}
+
+void setup() 
+{
+  unsigned int chanmask = (1 << PINCHAN);
+
+  Serial.begin(9600);
+
+// set PIO to chan A
+  REG_PIOB_PDR = chanmask;  //peripheral
+  REG_PIOB_OER = chanmask;  //output
+  REG_PIOB_ABSR = chanmask;  //peripheral B: TIOA0
+  REG_PIOB_MDDR = chanmask;  //close open drain
+
+// set up TC
+  pmc_set_writeprotect(false);
+  pmc_enable_periph_clk(XID);
+  //squarewave(100000);
+  pwmwave(70, 200000);
+}
+
+void dreg(char *s, unsigned int r) {
+  Serial.print(s);
+  Serial.print(r, HEX);
+}
+
+void tcregs()
+{
+  dreg("\n CV: ", XTC->TC_CHANNEL[XCHAN].TC_CV);  
+  dreg(" SR: ", XTC->TC_CHANNEL[XCHAN].TC_SR);
+  dreg(" CMR: ", XTC->TC_CHANNEL[XCHAN].TC_CMR);
+  dreg(" RA: ", XTC->TC_CHANNEL[XCHAN].TC_RA);
+  dreg(" RC: ", XTC->TC_CHANNEL[XCHAN].TC_RC);
+  while(1);
+}
+
+void loop() 
+{
+ tcregs();
+}
+Part IV
+
+
+#define  XTC    TC0       // TC number
+#define  XCHAN  0         // change the channel number to channel 1
+#define  XID    ID_TC0    // Instance ID
+
+void dreg(char *s, unsigned int r) 
+{
+  Serial.print(s);
+  Serial.print(r, HEX);
+}
+
+void setup()
+{
+  Serial.begin(9600);
+  pmc_set_writeprotect(false);
+  pmc_enable_periph_clk(XID);
+  TC_Configure(XTC, XCHAN, TC_CMR_WAVSEL_UP_RC | TC_CMR_TCCLKS_XC0);
+  TC_Start(XTC, XCHAN);
+}
+void loop()
+{ 
+  dreg("\nCV: ", XTC->TC_CHANNEL[XCHAN].TC_CV);
+}

@@ -1,0 +1,201 @@
+Part I
+
+I connected programming port to the computer's USB port, and checked the COM port number from the Device Manager, selecting the correct COM port number and the Board type on the Arduino IDE menu bar, Found the Blink example from 'examples'. Compiled and uploaded it to the Arduino DUE board. The 'blink' program functioned well.
+
+Part II
+
+Before this Lab I have noted down some essential information from datasheet, so in this section I used definitions from Atmel based library to control the micro controller, such as REG_PIOC_PER, REG_PIOC_OER etc. instead of Arduino library.
+
+
+void setup() {
+  REG_PIOC_PER=1<<30;        //choose PIO controller to use this pin
+  REG_PIOC_OER=1<<30;        //configure this pin as output pin
+  REG_PIOC_MDDR=1<<30;       //disable the open drain feature of this pin
+}
+
+// the loop routine runs over and over again forever:
+void loop() {
+  REG_PIOC_SODR=1<<30;
+  delay(1000);               // wait for a second
+  REG_PIOC_CODR=1<<30;
+  delay(1000);               // wait for a second
+}
+Notes that, I think we don't need to write the SODR or CODR like < REG_PIOC_SODR|=1<<30 >, because they are not output data registers.
+
+Part III
+
+In this part, PIOC13 and PIOC12 have opposite outputs and need to reverse at the same time. So we can't use SODR and CODR here in this case, because otherwise we will have to use SODR and CODR both, for example: set PIOC13 first and then clear PIOC12, there will be a slightly delay between PIOC13 and PIOC12. Instead, we can directly change the output data registers here.
+
+
+void setup() {
+
+  REG_PIOC_PER=1<<13;
+  REG_PIOC_OER=1<<13;
+  REG_PIOC_MDDR=1<<13;
+  
+  REG_PIOC_PER=1<<12;
+  REG_PIOC_OER=1<<12;
+  REG_PIOC_MDDR=1<<12;
+}
+
+void loop() {
+
+   REG_PIOC_ODSR = 1<<13; 
+  delay(1000);               // wait for a second
+   REG_PIOC_ODSR = 1<<12; 
+  delay(1000);               // wait for a second
+}
+Part IV
+
+This Part was finished after the Lab class, it could be compiled successfully but since I don't have a Arduino board myself, I'm not sure whether it could work properly or not.
+
+char* CharToMorsecode(char c): This function is used to convert a single character to a Morsecode series, return the address.
+
+void MorsecodeToBlink(char* Morsecode): This function is used to transmit the Morsecode by LED blink.
+
+void mencode(char* s) This function is used to accept a series of characters(address) and by calling CharToMorsecode and MorsecodeToBlink it can transmit the Morsecode of the characters one by one.
+
+
+char *mcodetbl[] =
+{
+ ".-", "-...", "-.-.", "-..",
+ ".", "..-.", "--.", "....",
+ "..", ".---", ".-.-", ".-..",
+ "--", "-.", "---", ".--.",
+ "--.-", ".-.", "...", "-",
+ "..-", "...-", ".--", "-..-",
+ "-.--", "--.."
+};
+
+char* CharToMorsecode(char c)
+{
+  unsigned int Num=(unsigned int)c;
+  char* Morsecode;
+  if(Num>=65&&Num<=90)
+  {
+    Num=Num-65;
+    Morsecode=mcodetbl[Num];
+  }
+  else
+  {
+    Morsecode=NULL;
+  }
+  
+  return Morsecode;
+}
+
+void MorsecodeToBlink(char* Morsecode)
+{
+  while(*Morsecode!=NULL)
+  {
+    if(*Morsecode=='.')
+    {
+      REG_PIOC_SODR=1<<30;
+      Serial.print('o');
+      delay(500);
+    }
+    else if(*Morsecode=='-')
+    {
+      REG_PIOC_SODR=1<<30;
+      Serial.print('x');
+      delay(1000);
+    }
+      REG_PIOC_CODR=1<<30;
+
+      delay(500);
+      Morsecode++;
+  }
+}
+
+void mencode(char* s)
+{
+  char* Morsecode;
+  while(*s!=NULL)
+  {
+    Morsecode=CharToMorsecode(*s);
+    MorsecodeToBlink(Morsecode);
+    s++;
+  }
+}
+
+void setup() {
+  REG_PIOC_PER=1<<30;
+  REG_PIOC_OER=1<<30;
+  REG_PIOC_MDDR=1<<30;
+}
+
+
+void loop() {
+mencode("HELLO");
+}
+* I rewrote the code on VS2013, which shows the consequence pretty well*
+
+
+#include "stdafx.h"
+#include <iostream>
+using namespace std;
+
+char *mcodetbl[] =
+{
+        ".-", "-...", "-.-.", "-..",
+        ".", "..-.", "--.", "....",
+        "..", ".---", ".-.-", ".-..",
+        "--", "-.", "---", ".--.",
+        "--.-", ".-.", "...", "-",
+        "..-", "...-", ".--", "-..-",
+        "-.--", "--.."
+};
+
+char* CharToMorsecode(char c)
+{
+        unsigned int Num = (unsigned int)c;
+        char* Morsecode;
+        if (Num >= 65 && Num <= 90)
+        {
+                Num = Num - 65;
+                Morsecode = mcodetbl[Num];
+        }
+        else
+        {
+                Morsecode = NULL;
+        }
+
+        return Morsecode;
+}
+
+void MorsecodeToBlink(char* Morsecode)
+{
+        while (*Morsecode != NULL)
+        {
+                if (*Morsecode == '.')
+                {
+                        cout << "x" ;
+                }
+                else if (*Morsecode == '-')
+                {
+                        cout << "o" ;
+                }
+                Morsecode++;
+        }
+}
+
+
+void mencode(char* s)
+{
+        char* Morsecode;
+        while (*s != NULL)
+        {
+                Morsecode = CharToMorsecode(*s);
+                MorsecodeToBlink(Morsecode);
+                s++;
+        }
+}
+
+
+int _tmain(int argc, _TCHAR* argv[])
+{
+        mencode("HELLO");
+        cout << endl;
+        system("pause");
+        return 0;
+}

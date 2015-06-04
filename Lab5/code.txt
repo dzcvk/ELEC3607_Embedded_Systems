@@ -1,0 +1,492 @@
+Part I
+
+
+#define BITSPERCHAR 8
+#define BAUD 9600
+
+typedef enum
+{
+  IDLE = 0U,
+  START,
+  BYTE,
+  STOP,
+} HIJACK_State_t;
+
+//int led = 1;
+int led = 13;
+
+//* FSM variables */
+static HIJACK_State_t txState = IDLE;
+static unsigned char txBitn;
+static unsigned char txData;
+unsigned char txSym = 1;
+unsigned char txStart = 0;
+
+void Timer_Init()
+{
+REG_PMC_WPMR = 0x504d4300;
+REG_PMC_PCER0 = 0b1000000000000000000000000000;
+REG_TC0_WPMR = 0x54494d00;
+REG_TC0_CMR0 = 0b00000000000000001100000000000000;
+REG_TC0_RC0 = 0x1117;
+REG_TC0_IER0 = 0b00010000;
+NVIC_EnableIRQ(TC0_IRQn);
+REG_TC0_CCR0 = 0b101;
+}
+void TC0_Handler()
+{
+
+int N_INT = REG_TC0_SR0;
+//Interrupt Service Code
+    hjisr();
+
+}
+
+void hjisr()
+{
+/* First iteration check for symbol. */
+  digitalWrite(led, txSym);
+  
+  switch(txState)
+  {
+    case START:
+      txSym = 0;
+      txBitn = 0;
+      txState = BYTE;
+      break;
+    case BYTE:
+      txSym = txData & 0x01;
+      txData = txData >> 1;
+      txBitn++;
+      txState = txBitn < BITSPERCHAR ? BYTE : STOP;
+      break;
+    case STOP:
+      txData = 0;
+      txSym = 1;
+      txState = IDLE;
+      txStart = 0;
+      break;
+    case IDLE:
+      txSym = 1;
+      if (txStart != 0)
+        txState = START;
+      break;
+    default:
+        break;
+  }
+}
+
+void setup()
+{
+  pinMode(led, OUTPUT);
+  Timer_Init();
+}
+
+void loop()
+{
+  int i;
+  char b = 0xAA;
+
+//If it's not sending data or previous data has been sent, then start sending again. 
+
+  if (txStart == 0) {
+    txData = b;
+    txStart = 1;
+  }
+
+  delay(1);
+}
+Part II
+
+
+#define BITSPERCHAR 8
+
+typedef enum
+{
+  IDLE = 0U,
+  START,
+  BYTE,
+  PARITY,
+  STOP,
+} HIJACK_State_t;
+
+//int led = 1;
+int led = 13;
+
+//* FSM variables */
+static HIJACK_State_t txState = IDLE;
+static unsigned char txBitn;
+static unsigned char txData;
+unsigned char txSym = 1;
+unsigned char txStart = 0;
+unsigned int Parity = 0;
+
+void Timer_Init()
+{
+REG_PMC_WPMR = 0x504d4300;
+REG_PMC_PCER0 = 0b1000000000000000000000000000;
+REG_TC0_WPMR = 0x54494d00;
+REG_TC0_CMR0 = 0b00000000000000001100000000000000;
+REG_TC0_RC0 = 0x1117;
+REG_TC0_IER0 = 0b00010000;
+NVIC_EnableIRQ(TC0_IRQn);
+REG_TC0_CCR0 = 0b101;
+}
+void TC0_Handler()
+{
+
+int N_INT = REG_TC0_SR0;
+//Interrupt Service Code
+    hjisr();
+
+}
+
+
+void hjisr()
+{
+/* First iteration check for symbol. */
+  digitalWrite(led, txSym);
+  
+  switch(txState)
+  {
+    case START:
+      txSym = 0;
+      txBitn = 0;
+      txState = BYTE;
+      break;
+    case BYTE:
+      txSym = txData & 0x01;   //get the bit to send
+      txData = txData >> 1;    //next bit
+      txBitn++;                //counting
+      txState = txBitn < BITSPERCHAR ? BYTE : PARITY;    //if count to the highest bit, stop
+      if(txSym == 1)
+      Parity++;
+      break;
+    case PARITY:
+      if(Parity%2 == 0)
+      txSym = 0;
+      else
+      txSym = 1;
+      Parity = 0;
+      txState = STOP;
+      break;
+    case STOP:
+      txData = 0;
+      txSym = 1;
+      txState = IDLE;
+      txStart = 0;
+      break;
+    case IDLE:
+      txSym = 1;
+      if (txStart != 0)
+        txState = START;
+      break;
+    default:
+        break;
+  }
+}
+
+void setup()
+{
+  pinMode(led, OUTPUT);
+  Timer_Init();
+}
+
+void loop()
+{
+  int i;
+  char b = 0xAA;
+
+//If it's not sending data or previous data has been sent, then start sending again. 
+
+  if (txStart == 0) {
+    txData = b;
+    txStart = 1;
+  }
+
+
+  delay(1);
+}
+Part III
+
+
+#define BITSPERCHAR 8
+
+typedef enum
+{
+  IDLE = 0U,
+  START,
+  BYTE,
+  PARITY,
+  STOP,
+} HIJACK_State_t;
+
+//int led = 1;
+int led = 13;
+int pin = 8;
+//* FSM variables */
+static HIJACK_State_t txState = IDLE;
+static unsigned char txBitn;
+static unsigned char txData;
+unsigned char txSym = 1;
+unsigned char txStart = 0;
+unsigned int Parity = 0;
+unsigned int FLAG = 0;
+void Timer_Init()
+{
+REG_PMC_WPMR = 0x504d4300;
+REG_PMC_PCER0 = 0b1000000000000000000000000000;
+REG_TC0_WPMR = 0x54494d00;
+REG_TC0_CMR0 = 0b00000000000000001100000000000000;
+REG_TC0_RC0 = 0x1117/2;
+REG_TC0_IER0 = 0b00010000;
+NVIC_EnableIRQ(TC0_IRQn);
+REG_TC0_CCR0 = 0b101;
+}
+void TC0_Handler()
+{
+
+int N_INT = REG_TC0_SR0;
+//Interrupt Service Code
+    hjisr();
+
+}
+
+void changeState()
+{
+  switch(txState)
+  {
+    case START:
+      txSym = 0;
+      txBitn = 0;
+      txState = BYTE;
+      digitalWrite(pin, HIGH);
+      break;
+    case BYTE:
+      txSym = txData & 0x01;   //get the bit to send
+      txData = txData >> 1;    //next bit
+      txBitn++;                //counting
+      txState = txBitn < BITSPERCHAR ? BYTE : PARITY;    //if count to the highest bit, stop
+      if(txSym == 1)
+      Parity++;
+      break;
+    case PARITY:
+      if(Parity%2 == 0)
+      txSym = 0;
+      else
+      txSym = 1;
+      Parity = 0;
+      txState = STOP;
+      break;
+    case STOP:
+      txData = 0;
+      txSym = 1;
+      txState = IDLE;
+      txStart = 0;
+      digitalWrite(pin, LOW);
+      break;
+    case IDLE:
+      txSym = 1;
+      if (txStart != 0)
+        txState = START;
+      break;
+    default:
+        break;
+  }
+
+}
+
+
+
+
+
+
+void hjisr()
+{
+   if(FLAG == 0)
+    {
+     FLAG = 1;
+     if(txSym == 1)
+       {digitalWrite(led, LOW);}
+     else
+       {digitalWrite(led, HIGH);}
+    }
+   else
+    {
+     FLAG = 0;
+
+     if(txSym == 1)
+       {digitalWrite(led, HIGH);}
+     else
+       {digitalWrite(led, LOW);}
+    changeState();
+    }
+
+/* First iteration check for symbol. */
+  //digitalWrite(led, txSym);
+}
+
+void setup()
+{
+  pinMode(led, OUTPUT);
+  pinMode(pin, OUTPUT);
+  Timer_Init();
+}
+
+void loop()
+{
+  int i;
+  char b = 0x8C;
+
+//If it's not sending data or previous data has been sent, then start sending again. 
+
+  if (txStart == 0) {
+    txData = b;
+    txStart = 1;
+  }
+
+
+  delay(1);
+}
+PartIV
+
+
+#define BITSPERCHAR 8
+
+typedef enum
+{
+  IDLE = 0U,
+  START,
+  BYTE,
+  PARITY,
+  STOP,
+} HIJACK_State_t;
+
+//int led = 1;
+int led = 13;
+int pin = 8;
+//* FSM variables */
+static HIJACK_State_t txState = IDLE;
+static unsigned char txBitn;
+static unsigned char txData;
+unsigned char txSym = 1;
+unsigned char txStart = 0;
+unsigned int Parity = 0;
+unsigned int FLAG = 0;
+void Timer_Init()
+{
+REG_PMC_WPMR = 0x504d4300;
+REG_PMC_PCER0 = 0b1000000000000000000000000000;
+REG_TC0_WPMR = 0x54494d00;
+REG_TC0_CMR0 = 0b00000000000000001100000000000000;
+REG_TC0_RC0 = 0x3b86;
+REG_TC0_IER0 = 0b00010000;
+NVIC_EnableIRQ(TC0_IRQn);
+REG_TC0_CCR0 = 0b101;
+}
+void TC0_Handler()
+{
+
+int N_INT = REG_TC0_SR0;
+//Interrupt Service Code
+    hjisr();
+
+}
+
+void changeState()
+{
+  switch(txState)
+  {
+    case START:
+      txSym = 0;
+      txBitn = 0;
+      txState = BYTE;
+      digitalWrite(pin, HIGH);
+      break;
+    case BYTE:
+      txSym = txData & 0x01;   //get the bit to send
+      txData = txData >> 1;    //next bit
+      txBitn++;                //counting
+      txState = txBitn < BITSPERCHAR ? BYTE : PARITY;    //if count to the highest bit, stop
+      if(txSym == 1)
+      Parity++;
+      break;
+    case PARITY:
+      if(Parity%2 == 0)
+      txSym = 0;
+      else
+      txSym = 1;
+      Parity = 0;
+      txState = STOP;
+      break;
+    case STOP:
+      txData = 0;
+      txSym = 1;
+      txState = IDLE;
+      txStart = 0;
+      digitalWrite(pin, LOW);
+      break;
+    case IDLE:
+      txSym = 1;
+      if (txStart != 0)
+        txState = START;
+      break;
+    default:
+        break;
+  }
+
+}
+
+
+
+
+
+
+void hjisr()
+{
+   if(FLAG == 0)
+    {
+     FLAG = 1;
+     if(txSym == 1)
+       {digitalWrite(led, LOW);}
+     else
+       {digitalWrite(led, HIGH);}
+    }
+   else
+    {
+     FLAG = 0;
+
+     if(txSym == 1)
+       {digitalWrite(led, HIGH);}
+     else
+       {digitalWrite(led, LOW);}
+    changeState();
+    }
+
+/* First iteration check for symbol. */
+  //digitalWrite(led, txSym);
+}
+
+void setup()
+{
+  pinMode(led, OUTPUT);
+  pinMode(pin, OUTPUT);
+  Timer_Init();
+}
+  char b = 0x00;
+
+void loop()
+{
+  int i;
+
+//If it's not sending data or previous data has been sent, then start sending again. 
+
+  if (txStart == 0) {
+    txData = b;
+    txStart = 1;
+    b++;
+  }
+
+
+  delay(20);
+}
